@@ -1,0 +1,3 @@
+rootProject.name = 'shadowcat-ai-server'
+include 'test-client'
+

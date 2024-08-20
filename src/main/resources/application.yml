@@ -1,0 +1,107 @@
+server:
+  port: ${SERVER_PORT}
+  chat-port: ${CHAT_SERVER_PORT}
+spring:
+  application:
+    name: shadowcat-ai-server
+  ai:
+    ollama:
+      # Ollama Server IP Address
+      base-url: ${OLLAMA_ADDRESS}:${OLLAMA_PORT}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+  shardingsphere:
+    props:
+      sql-show: true
+    datasource:
+      names: master
+      master:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbcUrl: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimeZone=UTC
+        url: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimeZone=UTC
+        username: ${MYSQL_USERNAME}
+        password: ${MYSQL_PASSWORD}
+    rules:
+      sharding:
+        sharding-algorithms:
+          master-database-sharding-strategy:
+            type: INLINE
+            props:
+              algorithm-expression: master
+          message-table-sharding-strategy:
+            type: INLINE
+            props:
+              algorithm-expression: messages_$->{id % 4}
+          session-table-sharding-strategy:
+            type: INLINE
+            props:
+              algorithm-expression: sessions_$->{uid % 2}
+          resource-table-sharding-strategy:
+            type: INLINE
+            props:
+              algorithm-expression: resources_$->{uid % 2}
+        tables:
+          messages:
+            actual-data-nodes: master.messages_$->{0..3}
+            database-strategy:
+              standard:
+                sharding-column: id
+                sharding-algorithm-name: master-database-sharding-strategy
+            table-strategy:
+              standard:
+                sharding-column: id
+                sharding-algorithm-name: message-table-sharding-strategy
+            key-generate-strategy:
+              column: id
+              key-generator-name: snow-key-generator
+          sessions:
+            actual-data-nodes: master.sessions_$->{0..1}
+            database-strategy:
+              standard:
+                sharding-column: uid
+                sharding-algorithm-name: master-database-sharding-strategy
+            table-strategy:
+              standard:
+                sharding-column: uid
+                sharding-algorithm-name: session-table-sharding-strategy
+            key-generate-strategy:
+              column: id
+              key-generator-name: uuid
+          resources:
+            actual-data-nodes: master.resources_$->{0..1}
+            database-strategy:
+              standard:
+                sharding-column: uid
+                sharding-algorithm-name: master-database-sharding-strategy
+            table-strategy:
+              standard:
+                sharding-column: uid
+                sharding-algorithm-name: resource-table-sharding-strategy
+            key-generate-strategy:
+              column: id
+              key-generator-name: snow-key-generator
+        key-generators:
+          snow-key-generator:
+            type: SNOWFLAKE
+          uuid:
+            type: UUID
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/*Mapper.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+shadowcat:
+  # Only be used for initial startup
+  init:
+    username: ${INIT_USERNAME}
+    email: ${INIT_EMAIL}
+    password: ${INIT_PASSWORD}
+  uploads:
+    path: ${UPLOADS_PATH}
+    # Max upload file size (bytes)
+    maxFileSize: 10485760
+    # Max request size (bytes)
+    maxRequestSize: 10500000
