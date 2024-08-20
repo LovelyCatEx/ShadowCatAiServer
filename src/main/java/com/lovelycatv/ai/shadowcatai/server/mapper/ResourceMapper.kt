@@ -12,6 +12,6 @@ import org.apache.ibatis.annotations.Mapper
  */
 @Mapper
 interface ResourceMapper : BaseMapper<ResourceEntity> {
-    @Insert("INSERT INTO resources_0 (uid, extension, file_name, timestamp) VALUES (#{uid}, #{extension}, #{fileName}, #{timestamp})")
+    @Insert("INSERT INTO resources (uid, extension, file_name, timestamp) VALUES (#{uid}, #{extension}, #{fileName}, #{timestamp})")
     fun insertResource(entity: ResourceEntity)
 }
